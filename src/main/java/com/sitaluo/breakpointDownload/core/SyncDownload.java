@@ -1,4 +1,4 @@
-package com.sitaluo.breakpointDownload;
+package com.sitaluo.breakpointDownload.core;
 
 import java.io.File;
 import java.io.FileOutputStream;

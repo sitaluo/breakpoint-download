@@ -1,21 +1,24 @@
 package com.sitaluo.breakpointDownload;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.RandomAccessFile;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import com.sitaluo.breakpointDownload.core.DownloadCheckPoint;
 import com.sitaluo.breakpointDownload.core.DownloadFileRequest;
 import com.sitaluo.breakpointDownload.core.DownloadFileResult;
 import com.sitaluo.breakpointDownload.core.DownloadPart;
 import com.sitaluo.breakpointDownload.core.DownloadResult;
+import com.sitaluo.breakpointDownload.core.DownloadTask;
 import com.sitaluo.breakpointDownload.core.PartResult;
+import com.sitaluo.breakpointDownload.core.SyncDownload;
+import com.sitaluo.breakpointDownload.core.util.FileUtils;
 import com.sitaluo.breakpointDownload.core.util.HttpUtils;
 
 /**
@@ -26,11 +29,23 @@ import com.sitaluo.breakpointDownload.core.util.HttpUtils;
  */
 public class DownloadClient {
 
+	/**
+	 * 同步下载单个文件
+	 * @param sourceUrl
+	 * @param targetFile
+	 * @return
+	 */
 	public static boolean syncDownload(String sourceUrl, String targetFile) {
 		return SyncDownload.download(sourceUrl, targetFile);
 	}
 
-	public static DownloadFileResult breakpointDownload(DownloadFileRequest downloadFileRequest) throws Exception {
+	/**
+	 * 断点续传多线程分片下载
+	 * @param downloadFileRequest
+	 * @return
+	 * @throws Throwable
+	 */
+	public static DownloadFileResult breakpointDownload(DownloadFileRequest downloadFileRequest) throws Throwable {
 		if (downloadFileRequest.getCheckpointFile() == null || downloadFileRequest.getCheckpointFile().isEmpty()) {
 			downloadFileRequest.setCheckpointFile(downloadFileRequest.getDownloadFile() + ".dcp");
 		}
@@ -38,20 +53,21 @@ public class DownloadClient {
 	}
 
 	private static DownloadFileResult downloadFileWithCheckpoint(DownloadFileRequest downloadFileRequest)
-			throws Exception {
+			throws Throwable {
 		DownloadFileResult downloadFileResult = new DownloadFileResult();
 		DownloadCheckPoint downloadCheckPoint = new DownloadCheckPoint();
 		try {
 			downloadCheckPoint.load(downloadFileRequest.getCheckpointFile());
 		} catch (Exception e) {
-			remove(downloadFileRequest.getCheckpointFile());
+			FileUtils.remove(downloadFileRequest.getCheckpointFile());
 		}
 		// the download checkpoint is corrupted, download again
 		if (!downloadCheckPoint.isValid()) {
 			prepare(downloadCheckPoint, downloadFileRequest);
-			remove(downloadFileRequest.getCheckpointFile());
+			FileUtils.remove(downloadFileRequest.getCheckpointFile());
 		}
-
+		downloadCheckPoint.setRemoteFileUrl(downloadFileRequest.getRemoteFileUrl());
+		
 		DownloadResult downloadResult = multThreaddownload(downloadCheckPoint, downloadFileRequest);
 		for (PartResult partResult : downloadResult.getPartResults()) {
 			if (partResult.isFailed()) {
@@ -59,26 +75,73 @@ public class DownloadClient {
 			}
 		}
 		// rename the temp file.
-		renameTo(downloadFileRequest.getTempDownloadFile(), downloadFileRequest.getDownloadFile());
+		FileUtils.renameTo(downloadFileRequest.getTempDownloadFile(), downloadFileRequest.getDownloadFile());
 		// delete the checkpoint file after a successful download.
-		remove(downloadFileRequest.getCheckpointFile());
+		FileUtils.remove(downloadFileRequest.getCheckpointFile());
 		downloadFileResult.setLocalfilePath(downloadFileRequest.getDownloadFile());
 		return downloadFileResult;
 	}
 
 	private static DownloadResult multThreaddownload(DownloadCheckPoint downloadCheckPoint,
-			DownloadFileRequest downloadFileRequest) {
-			
-		return null;
+			DownloadFileRequest downloadFileRequest) throws Throwable{
+		
+		DownloadResult downloadResult = new DownloadResult();
+        ArrayList<PartResult> taskResults = new ArrayList<PartResult>();
+        ExecutorService service = Executors.newFixedThreadPool(downloadFileRequest.getTaskNum());
+        ArrayList<Future<PartResult>> futures = new ArrayList<Future<PartResult>>();
+        List<DownloadTask> tasks = new ArrayList<DownloadTask>();
+
+        // Compute the size of data pending download.
+        long contentLength = 0;
+        for (int i = 0; i < downloadCheckPoint.downloadParts.size(); i++) {
+            if (!downloadCheckPoint.downloadParts.get(i).isCompleted) {
+                long partSize = downloadCheckPoint.downloadParts.get(i).end - downloadCheckPoint.downloadParts.get(i).start + 1;
+                contentLength += partSize;
+            }
+        }
+        
+        // Concurrently download parts.
+        for (int i = 0; i < downloadCheckPoint.downloadParts.size(); i++) {
+        	System.out.println("downloadParts["+i+"] isCompleted:" + downloadCheckPoint.downloadParts.get(i).isCompleted);
+            if (!downloadCheckPoint.downloadParts.get(i).isCompleted) {
+            	DownloadTask task = new DownloadTask(i, "download-" + i, downloadCheckPoint, i, downloadFileRequest);
+                futures.add(service.submit(task));
+                tasks.add(task);
+            } else {
+                taskResults.add(new PartResult(i + 1, downloadCheckPoint.downloadParts.get(i).start,
+                        downloadCheckPoint.downloadParts.get(i).end));
+            }
+        }
+        service.shutdown();
+        
+        // Waiting for all parts download,
+        service.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS);
+        for (Future<PartResult> future : futures) {
+            try {
+                PartResult tr = future.get();
+                taskResults.add(tr);
+            } catch (ExecutionException e) {
+                throw e.getCause();
+            }
+        }
+        
+        // Sorts the download result by the part number.
+        Collections.sort(taskResults, (p1,p2)-> p1.getNumber() - p2.getNumber());
+        // sets the return value.
+        downloadResult.setPartResults(taskResults);
+
+        return downloadResult;
 	}
 
 	private static void prepare(DownloadCheckPoint downloadCheckPoint, DownloadFileRequest downloadFileRequest)
 			throws IOException {
 		downloadCheckPoint.downloadFile = downloadFileRequest.getDownloadFile();
-		long fileSize = HttpUtils.getRemoteFileSize(downloadFileRequest.getDownloadFile());
+		downloadCheckPoint.remoteFileUrl = downloadFileRequest.getRemoteFileUrl();
+		long fileSize = HttpUtils.getRemoteFileSize(downloadFileRequest.getRemoteFileUrl());
+		downloadCheckPoint.setFileSize((int)fileSize);
 		downloadCheckPoint.downloadParts = splitFile(fileSize, downloadFileRequest.getPartSize());
 
-		createFixedFile(downloadFileRequest.getTempDownloadFile(), fileSize);
+		FileUtils.createFixedFile(downloadFileRequest.getTempDownloadFile(), fileSize);
 	}
 
 	private static ArrayList<DownloadPart> splitFile(long objectSize, long partSize) {
@@ -108,82 +171,5 @@ public class DownloadClient {
 		return begin + per - 1;
 	}
 
-	public static void createFixedFile(String filePath, long length) throws IOException {
-		File file = new File(filePath);
-		RandomAccessFile rf = null;
-		try {
-			rf = new RandomAccessFile(file, "rw");
-			rf.setLength(length);
-		} finally {
-			if (rf != null) {
-				rf.close();
-			}
-		}
-	}
-
-	private static boolean remove(String filePath) {
-		boolean flag = false;
-		File file = new File(filePath);
-
-		if (file.isFile() && file.exists()) {
-			flag = file.delete();
-		}
-
-		return flag;
-	}
-
-	private static void renameTo(String srcFilePath, String destFilePath) throws IOException {
-		File srcfile = new File(srcFilePath);
-		File destfile = new File(destFilePath);
-		moveFile(srcfile, destfile);
-	}
-
-	private static void moveFile(final File srcFile, final File destFile) throws IOException {
-		if (srcFile == null) {
-			throw new NullPointerException("Source must not be null");
-		}
-		if (destFile == null) {
-			throw new NullPointerException("Destination must not be null");
-		}
-		if (!srcFile.exists()) {
-			throw new FileNotFoundException("Source '" + srcFile + "' does not exist");
-		}
-		if (srcFile.isDirectory()) {
-			throw new IOException("Source '" + srcFile + "' is a directory");
-		}
-		if (destFile.isDirectory()) {
-			throw new IOException("Destination '" + destFile + "' is a directory");
-		}
-		if (destFile.exists()) {
-			if (!destFile.delete()) {
-				throw new IOException("Failed to delete original file '" + srcFile + "'");
-			}
-		}
-
-		final boolean rename = srcFile.renameTo(destFile);
-		if (!rename) {
-			copyFile(srcFile, destFile);
-			if (!srcFile.delete()) {
-				throw new IOException(
-						"Failed to delete original file '" + srcFile + "' after copy to '" + destFile + "'");
-			}
-		}
-	}
-
-	private static void copyFile(File source, File dest) throws IOException {
-		InputStream is = null;
-		OutputStream os = null;
-		try {
-			is = new FileInputStream(source);
-			os = new FileOutputStream(dest);
-			byte[] buffer = new byte[4096];
-			int length;
-			while ((length = is.read(buffer)) > 0) {
-				os.write(buffer, 0, length);
-			}
-		} finally {
-			is.close();
-			os.close();
-		}
-	}
+	
 }

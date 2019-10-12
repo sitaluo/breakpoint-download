@@ -25,6 +25,12 @@ public class DownloadCheckPoint implements Serializable {
     public int md5;  // the md5 of checkpoint data.
     public int fileSize;
 
+    public void detailePrint() {
+    	System.out.println("md5:"+md5 + ",fileSize:"+fileSize);
+    	for (DownloadPart downloadPart : downloadParts) {
+			System.out.println(downloadPart);
+		}
+    }
 
 	/**
      * Loads the checkpoint data from the checkpoint file.
@@ -62,6 +68,8 @@ public class DownloadCheckPoint implements Serializable {
         this.md5 = dcp.md5;
         this.downloadFile = dcp.downloadFile;
         this.downloadParts = dcp.downloadParts;
+        this.remoteFileUrl = dcp.remoteFileUrl;
+        this.fileSize = dcp.fileSize;
     }
     
     /**
@@ -82,7 +90,16 @@ public class DownloadCheckPoint implements Serializable {
         
         return true;
     }
-    
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((downloadFile == null) ? 0 : downloadFile.hashCode());
+        result = prime * result + ((remoteFileUrl == null) ? 0 : remoteFileUrl.hashCode());
+        result = prime * result + ((downloadParts == null) ? 0 : downloadParts.hashCode());
+        result = prime * result + ((fileSize == 0) ? 0 : fileSize);
+        return result;
+    }
     public String getDownloadFile() {
 		return downloadFile;
 	}

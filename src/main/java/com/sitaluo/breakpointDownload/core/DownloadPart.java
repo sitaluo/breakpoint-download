@@ -53,5 +53,10 @@ public class DownloadPart implements Serializable {
 		this.isCompleted = isCompleted;
 	}
 	
+	@Override
+	public String toString() {
+		return "DownloadPart [index=" + index + ", start=" + start + ", end=" + end + ", isCompleted=" + isCompleted
+				+ "]";
+	}
 	
 }
