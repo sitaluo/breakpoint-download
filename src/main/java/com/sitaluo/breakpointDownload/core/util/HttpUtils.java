@@ -5,6 +5,8 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import com.sitaluo.breakpointDownload.core.FileMetaData;
+
 /** 
  * @ClassName: HttpUtils
  * @description: 
@@ -19,7 +21,7 @@ public class HttpUtils {
 	 * @return 下载文件工具类
 	 * @throws IOException
 	 */
-	public static int getRemoteFileSize(String fileUrl) throws IOException{
+	public static FileMetaData getRemoteFileSize(String fileUrl) throws IOException{
 		try {
 			URL url = new URL(fileUrl);
 			HttpURLConnection conn = (HttpURLConnection) url.openConnection();
@@ -29,7 +31,8 @@ public class HttpUtils {
 			if (code == 200) 
 			{
 				int length = conn.getContentLength();
-				return length;
+				long lastModified = conn.getLastModified();
+				return new FileMetaData(lastModified,length);
 			}else {
 				throw new Exception("获取文件长度失败,code:"+code);
 			}

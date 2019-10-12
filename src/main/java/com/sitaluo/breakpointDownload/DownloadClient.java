@@ -16,8 +16,8 @@ import com.sitaluo.breakpointDownload.core.DownloadFileResult;
 import com.sitaluo.breakpointDownload.core.DownloadPart;
 import com.sitaluo.breakpointDownload.core.DownloadResult;
 import com.sitaluo.breakpointDownload.core.DownloadTask;
+import com.sitaluo.breakpointDownload.core.FileMetaData;
 import com.sitaluo.breakpointDownload.core.PartResult;
-import com.sitaluo.breakpointDownload.core.SyncDownload;
 import com.sitaluo.breakpointDownload.core.util.FileUtils;
 import com.sitaluo.breakpointDownload.core.util.HttpUtils;
 
@@ -28,16 +28,6 @@ import com.sitaluo.breakpointDownload.core.util.HttpUtils;
  * @Date: 2019年10月11日
  */
 public class DownloadClient {
-
-	/**
-	 * 同步下载单个文件
-	 * @param sourceUrl
-	 * @param targetFile
-	 * @return
-	 */
-	public static boolean syncDownload(String sourceUrl, String targetFile) {
-		return SyncDownload.download(sourceUrl, targetFile);
-	}
 
 	/**
 	 * 断点续传多线程分片下载
@@ -137,11 +127,12 @@ public class DownloadClient {
 			throws IOException {
 		downloadCheckPoint.downloadFile = downloadFileRequest.getDownloadFile();
 		downloadCheckPoint.remoteFileUrl = downloadFileRequest.getRemoteFileUrl();
-		long fileSize = HttpUtils.getRemoteFileSize(downloadFileRequest.getRemoteFileUrl());
-		downloadCheckPoint.setFileSize((int)fileSize);
-		downloadCheckPoint.downloadParts = splitFile(fileSize, downloadFileRequest.getPartSize());
+		FileMetaData fileMetaData = HttpUtils.getRemoteFileSize(downloadFileRequest.getRemoteFileUrl());
+		downloadCheckPoint.setFileSize(fileMetaData.getFileSize());
+		downloadCheckPoint.setLastModified(fileMetaData.getLastModified());
+		downloadCheckPoint.downloadParts = splitFile(fileMetaData.getFileSize(), downloadFileRequest.getPartSize());
 
-		FileUtils.createFixedFile(downloadFileRequest.getTempDownloadFile(), fileSize);
+		FileUtils.createFixedFile(downloadFileRequest.getTempDownloadFile(), fileMetaData.getFileSize());
 	}
 
 	private static ArrayList<DownloadPart> splitFile(long objectSize, long partSize) {

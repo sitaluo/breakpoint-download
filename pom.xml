@@ -5,7 +5,7 @@
 
 	<groupId>com.sitaluo</groupId>
 	<artifactId>breakpoint-download</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
+	<version>1.0</version>
 	<packaging>jar</packaging>
 
 	<name>breakpoint-download</name>
