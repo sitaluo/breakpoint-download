@@ -19,7 +19,7 @@ Range: bytes=50-100 ：第50个字节到第100个字节之间的数据.`
 ```java
 @Test
 	public  void breakpointDownloadTest() throws Throwable {
-		String sourceUrl ="https://xxxx/12745/854204000.JPG";
+		String sourceUrl ="https://timgsa.baidu.com/timg?image&quality=80&size=b9999_10000&sec=1570872262725&di=0303e99e77afdaefa2c1b16b4910b4b9&imgtype=0&src=http%3A%2F%2Fpic27.nipic.com%2F20130321%2F9678987_225139671149_2.jpg";
 		String  targetFile ="D:\\test\\1.jpg";
 		DownloadFileRequest downloadFileRequest = new DownloadFileRequest();
 		downloadFileRequest.setRemoteFileUrl(sourceUrl);
