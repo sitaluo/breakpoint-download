@@ -102,7 +102,7 @@ public class DownloadClient {
         
         // Concurrently download parts.
         for (int i = 0; i < downloadCheckPoint.downloadParts.size(); i++) {
-        	System.out.println("downloadParts["+i+"] isCompleted:" + downloadCheckPoint.downloadParts.get(i).isCompleted);
+        	//System.out.println("downloadParts["+i+"] isCompleted:" + downloadCheckPoint.downloadParts.get(i).isCompleted);
             if (!downloadCheckPoint.downloadParts.get(i).isCompleted) {
             	DownloadTask task = new DownloadTask(i, "download-" + i, downloadCheckPoint, i, downloadFileRequest);
                 futures.add(service.submit(task));
