@@ -1,5 +1,5 @@
 package com.sitaluo.breakpointDownload.core;
-public class PartResult {
+class PartResult {
 
         public PartResult(int number, long start, long end) {
             this.number = number;

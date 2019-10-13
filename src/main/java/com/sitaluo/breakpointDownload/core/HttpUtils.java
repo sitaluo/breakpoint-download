@@ -1,11 +1,9 @@
-package com.sitaluo.breakpointDownload.core.util;
+package com.sitaluo.breakpointDownload.core;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import com.sitaluo.breakpointDownload.core.FileMetaData;
 
 /** 
  * @ClassName: HttpUtils

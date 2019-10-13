@@ -1,4 +1,4 @@
-package com.sitaluo.breakpointDownload;
+package com.sitaluo.breakpointDownload.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -10,16 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.sitaluo.breakpointDownload.core.DownloadCheckPoint;
-import com.sitaluo.breakpointDownload.core.DownloadFileRequest;
-import com.sitaluo.breakpointDownload.core.DownloadFileResult;
-import com.sitaluo.breakpointDownload.core.DownloadPart;
-import com.sitaluo.breakpointDownload.core.DownloadResult;
-import com.sitaluo.breakpointDownload.core.DownloadTask;
-import com.sitaluo.breakpointDownload.core.FileMetaData;
-import com.sitaluo.breakpointDownload.core.PartResult;
 import com.sitaluo.breakpointDownload.core.util.FileUtils;
-import com.sitaluo.breakpointDownload.core.util.HttpUtils;
 
 /**
  * @ClassName: DownloadUtil

@@ -4,9 +4,7 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.concurrent.Callable;
 
-import com.sitaluo.breakpointDownload.core.util.HttpUtils;
-
-public class DownloadTask implements Callable<PartResult> {
+class DownloadTask implements Callable<PartResult> {
 	public static final int KB = 1024;
     public static final int DEFAULT_BUFFER_SIZE = 8 * KB;
         public DownloadTask(int id, String name, DownloadCheckPoint downloadCheckPoint, int partIndex,

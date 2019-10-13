@@ -24,8 +24,8 @@ Range: bytes=50-100 ：第50个字节到第100个字节之间的数据.`
 		DownloadFileRequest downloadFileRequest = new DownloadFileRequest();
 		downloadFileRequest.setRemoteFileUrl(sourceUrl);
 		downloadFileRequest.setDownloadFile(targetFile);
-		DownloadClient.breakpointDownload(downloadFileRequest);
-		System.out.println("分片下载完成");
+		DownloadFileResult downloadFileResult = DownloadFacade.breakpointDownload(downloadFileRequest);
+		System.out.println("分片下载完成" + downloadFileResult.getLocalfilePath());
 	}
 ```
 

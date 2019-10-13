@@ -2,7 +2,7 @@ package com.sitaluo.breakpointDownload.core;
 
 import java.util.List;
 
-public class DownloadResult {
+class DownloadResult {
 
         public List<PartResult> getPartResults() {
             return partResults;

@@ -8,7 +8,7 @@ import java.io.Serializable;
  * @author: sitaluo
  * @Date: 2019年10月11日
  */
-public class DownloadPart implements Serializable {
+class DownloadPart implements Serializable {
 
 	private static final long serialVersionUID = 7768600538642378362L;
 

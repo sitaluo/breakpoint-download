@@ -5,7 +5,7 @@ package com.sitaluo.breakpointDownload.core;
  * @author: sitaluo
  * @Date: 2019年10月12日
  */
-public class FileMetaData {
+class FileMetaData {
 
 	private long lastModified;
 	private long fileSize;

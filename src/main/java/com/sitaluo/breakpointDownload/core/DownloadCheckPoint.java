@@ -8,15 +8,13 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 
-import com.sitaluo.breakpointDownload.core.util.HttpUtils;
-
 /**
  * @ClassName: DownloadCheckPoint
  * @description:
  * @author: sitaluo
  * @Date: 2019年10月11日
  */
-public class DownloadCheckPoint implements Serializable {
+class DownloadCheckPoint implements Serializable {
 
 	private static final long serialVersionUID = -8444259366601277270L;
 	public String downloadFile; // local path for the download.
