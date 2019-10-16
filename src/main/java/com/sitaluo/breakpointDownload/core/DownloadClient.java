@@ -10,6 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import com.sitaluo.breakpointDownload.core.event.ProgressEventType;
+import com.sitaluo.breakpointDownload.core.event.ProgressListener;
+import com.sitaluo.breakpointDownload.core.event.ProgressPublisher;
 import com.sitaluo.breakpointDownload.core.util.FileUtils;
 
 /**
@@ -49,12 +52,21 @@ public class DownloadClient {
 		}
 		downloadCheckPoint.setRemoteFileUrl(downloadFileRequest.getRemoteFileUrl());
 		
+		ProgressListener listener = downloadFileRequest.getProgressListener();
+		//发布开始下载事件
+	    ProgressPublisher.publishProgress(listener, ProgressEventType.TRANSFER_STARTED_EVENT);
+	        
 		DownloadResult downloadResult = multThreaddownload(downloadCheckPoint, downloadFileRequest);
 		for (PartResult partResult : downloadResult.getPartResults()) {
 			if (partResult.isFailed()) {
+				 ProgressPublisher.publishProgress(listener, ProgressEventType.TRANSFER_PART_FAILED_EVENT);
 				throw partResult.getException();
 			}
 		}
+		
+		//发布下载完成事件
+        ProgressPublisher.publishProgress(listener, ProgressEventType.TRANSFER_COMPLETED_EVENT);
+        
 		// rename the temp file.
 		FileUtils.renameTo(downloadFileRequest.getTempDownloadFile(), downloadFileRequest.getDownloadFile());
 		// delete the checkpoint file after a successful download.
@@ -72,6 +84,9 @@ public class DownloadClient {
         ArrayList<Future<PartResult>> futures = new ArrayList<Future<PartResult>>();
         List<DownloadTask> tasks = new ArrayList<DownloadTask>();
 
+        ProgressListener listener = downloadFileRequest.getProgressListener();
+        downloadFileRequest.setProgressListener(null);
+        
         // Compute the size of data pending download.
         long contentLength = 0;
         for (int i = 0; i < downloadCheckPoint.downloadParts.size(); i++) {
@@ -81,11 +96,13 @@ public class DownloadClient {
             }
         }
         
+        ProgressPublisher.publishResponseContentLength(listener, contentLength);
+        
         // Concurrently download parts.
         for (int i = 0; i < downloadCheckPoint.downloadParts.size(); i++) {
         	//System.out.println("downloadParts["+i+"] isCompleted:" + downloadCheckPoint.downloadParts.get(i).isCompleted);
             if (!downloadCheckPoint.downloadParts.get(i).isCompleted) {
-            	DownloadTask task = new DownloadTask(i, "download-" + i, downloadCheckPoint, i, downloadFileRequest);
+            	DownloadTask task = new DownloadTask(i, "download-" + i, downloadCheckPoint, i, downloadFileRequest,listener);
                 futures.add(service.submit(task));
                 tasks.add(task);
             } else {
@@ -110,6 +127,7 @@ public class DownloadClient {
         Collections.sort(taskResults, (p1,p2)-> p1.getNumber() - p2.getNumber());
         // sets the return value.
         downloadResult.setPartResults(taskResults);
+        downloadFileRequest.setProgressListener(listener);
 
         return downloadResult;
 	}

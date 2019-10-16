@@ -4,16 +4,20 @@ import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.util.concurrent.Callable;
 
+import com.sitaluo.breakpointDownload.core.event.ProgressListener;
+import com.sitaluo.breakpointDownload.core.event.ProgressPublisher;
+
 class DownloadTask implements Callable<PartResult> {
 	public static final int KB = 1024;
     public static final int DEFAULT_BUFFER_SIZE = 8 * KB;
         public DownloadTask(int id, String name, DownloadCheckPoint downloadCheckPoint, int partIndex,
-                DownloadFileRequest downloadFileRequest) {
+                DownloadFileRequest downloadFileRequest,ProgressListener progressListener) {
             this.id = id;
             this.name = name;
             this.downloadCheckPoint = downloadCheckPoint;
             this.partIndex = partIndex;
             this.downloadFileRequest = downloadFileRequest;
+            this.progressListener = progressListener;
         }
         
         public PartResult call() throws Exception {
@@ -39,7 +43,9 @@ class DownloadTask implements Callable<PartResult> {
                 //System.out.println("分片下载"+ partIndex + ",startIndex:"+downloadPart.start + ",endIndex:"+ downloadPart.end);
                 downloadCheckPoint.update(partIndex, true);
                 downloadCheckPoint.dump(downloadFileRequest.getCheckpointFile()); 
-                //ProgressPublisher.publishResponseBytesTransferred(progressListener, (downloadPart.end - downloadPart.start + 1));
+                
+                ProgressPublisher.publishResponseBytesTransferred(progressListener, 
+                        (downloadPart.end - downloadPart.start + 1));
             } catch (Exception e) {
                 tr.setFailed(true);
                 tr.setException(e);
@@ -63,5 +69,6 @@ class DownloadTask implements Callable<PartResult> {
         private DownloadCheckPoint downloadCheckPoint;
         private int partIndex;
         private DownloadFileRequest downloadFileRequest;
+        private ProgressListener progressListener;
 		
     }

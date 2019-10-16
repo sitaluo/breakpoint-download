@@ -1,4 +1,7 @@
-package com.sitaluo.breakpointDownload.core; 
+package com.sitaluo.breakpointDownload.core;
+
+import com.sitaluo.breakpointDownload.core.event.ProgressListener;
+
 /** 
  * @ClassName: DownloadRequest
  * @description: 
@@ -13,6 +16,7 @@ public class DownloadFileRequest {
 	private Integer partSize; //one part size
 	private Integer taskNum; //download thread num
 	private String checkpointFile;
+	private ProgressListener progressListener;
 	
 	public DownloadFileRequest() {
 		this.partSize = DEFAULT_PART_SIZE;
@@ -55,7 +59,14 @@ public class DownloadFileRequest {
 	public void setRemoteFileUrl(String remoteFileUrl) {
 		this.remoteFileUrl = remoteFileUrl;
 	}
-	
+
+	public ProgressListener getProgressListener() {
+		return progressListener;
+	}
+
+	public void setProgressListener(ProgressListener progressListener) {
+		this.progressListener = progressListener;
+	}
 	
 	
 }
